@@ -13,7 +13,9 @@ import frc.robot.Constants.OIConstants;
 //Commad Class
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
+import edu.wpi.first.wpilibj2.command.ParallelRaceGroup;
 import edu.wpi.first.wpilibj2.command.RunCommand;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 
 //Subsystems
@@ -26,7 +28,7 @@ import frc.robot.commands.ShooterCommands.IndexCmd;
 
 //Custom Library
 import frc.robot.custom.MZ80;
-import frc.robot.custom.NamedCommandSolver;
+
 //Commands
 import frc.robot.commands.ShooterCommands.ShootCmd;
 import frc.robot.commands.ShooterCommands.WristPIDCmd;
@@ -42,8 +44,6 @@ import frc.robot.commands.CombinedCommands.Stabilize;
 import frc.robot.commands.CombinedCommands.Take;
 
 public class RobotContainer {
-    
-    NamedCommandSolver solver = new NamedCommandSolver(Commands.print("enes"), Commands.print("murat"));
     SendableChooser<Command> autoChooser;
 
     //Custom Library
@@ -105,7 +105,7 @@ public class RobotContainer {
     SetX           SetX                     = new SetX(swerve);
     //--Amp
     IndexCmd       indexCmdOutAmp           = new IndexCmd(index, -.9);
-    WristPIDCmd    wristUp                  = new WristPIDCmd(shooter, 200);//milimeter
+    WristPIDCmd    wristUp                  = new WristPIDCmd(shooter, 1100);//milimeter
     WristPIDCmd    wristDown                = new WristPIDCmd(shooter, 0);//milimeter
     
     //Combined Commands
@@ -118,10 +118,26 @@ public class RobotContainer {
     //Robot
     Robot          robot                    = new Robot();
 
+    //Auto Commands
+    //--aShoot
+    IndexCmd       aIndexInShoot            = new IndexCmd(index, .9);
+    ShootCmd       aShootCmd                = new ShootCmd(shooter, index);
+    IndexCmd       aIndexOutSlow            = new IndexCmd(index, -.1);
+    IntakeCmd      aIntakeFeed              = new IntakeCmd(intake, .9);
 
+    Shoot          aShoot                   = new Shoot(aIndexInShoot, aIndexOutSlow, aShootCmd, aIntakeFeed);
+    
+    ParallelRaceGroup  aShootGroup          = new ParallelRaceGroup(aShoot, new WaitCommand(2));
+    //--aTake
+    IndexCmd       aIndexInTake             = new IndexCmd(index, .9);
+    IntakeCmd      aIntakeTake              = new IntakeCmd(intake, .9);
+    MZ80Cmd        aMZ80Cmd                 = new MZ80Cmd(mz80);
+
+    Take           aTake                    = new Take(aIntakeTake, aIndexInTake, aMZ80Cmd);
 
     public RobotContainer() {
-
+        NamedCommands.registerCommand("take", aTake);
+        NamedCommands.registerCommand("shoot", aShootGroup);
         autoChooser = AutoBuilder.buildAutoChooser();
         configureButtonBindings();
         SmartDashboard.putData("Auto Mode", autoChooser);
